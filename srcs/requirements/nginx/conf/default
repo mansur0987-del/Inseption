@@ -1,0 +1,44 @@
+
+
+server {
+	# указываем порт который прослушивать через ssl
+	listen 443 ssl;
+	listen [::]:443 ssl;
+
+	# название домена
+	server_name         armaxima.42.fr;
+
+	# где хранятся сертификаты и ключи к сертификату, ключ должен хрониться в месте с ограниченным доступом
+	ssl_certificate     /etc/ssl/certs/nginx.crt;
+	ssl_certificate_key /etc/ssl/private/nginx.key;
+
+
+	# по заданию указываем разрешенные протоколы
+	ssl_protocols TLSv1.2 TLSv1.3;
+
+	# устанавливаем index
+	index index.html index.php;
+
+	# устанавливаем root
+	root /var/www/html/wordpress;
+
+	# запрет для скрытых файлов
+	location ~ /\. {
+		deny all;
+	}
+
+	# запрет для загруженных скриптов
+	location ~* /(?:uploads|files)/.*\.php$ {
+		deny all;
+	}
+
+	location ~ \.php$ {
+		try_files $uri =404;
+		fastcgi_split_path_info ^(.+\.php)(/.+)$;
+		fastcgi_pass wordpress:9000;
+		fastcgi_index index.php;
+		include fastcgi_params;
+		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+		fastcgi_param PATH_INFO $fastcgi_path_info;
+	}
+}

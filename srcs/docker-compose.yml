@@ -1,0 +1,87 @@
+# версия
+version: '3.9'
+
+# сервисы
+services:
+  mariadb:
+    # название контейнера
+    container_name: mariadb
+    # путь к Docker
+    build: ./requirements/mariadb
+    # настройка перезапуска
+    restart: unless-stopped
+    # путь к окружению
+    env_file: .env
+    # путь к хранению данных на сервере
+    volumes:
+      - db:/var/lib/mysql
+    # объединяем в рамках одного проекта
+    networks:
+      - project
+
+  wordpress:
+    # название контейнера
+    container_name: wordpress
+    # путь к Docker
+    build: ./requirements/wordpress
+    # настройка перезапуска
+    restart: unless-stopped
+    # путь к окружению
+    env_file: .env
+    # путь к хранению данных на сервере
+    volumes:
+      - wp:/var/www/html/wordpress
+    # объединяем в рамках одного проекта
+    networks:
+      - project
+    # ожидание запуска сервиса БД
+    depends_on:
+      - mariadb
+
+  nginx:
+    # название контейнера
+    container_name: nginx
+    # путь к Docker
+    build: ./requirements/nginx
+    # настройка перезапуска
+    restart: unless-stopped
+    # путь к окружению
+    env_file: .env
+    # путь к хранению данных на сервере
+    volumes:
+      - wp:/var/www/html/wordpress
+    # объединяем в рамках одного проекта
+    networks:
+      - project
+    # ожидание запуска сервиса WP
+    depends_on:
+      - wordpress
+    # работает в определенном порте
+    # сервер : сервис
+    ports:
+      - "443:443"
+
+
+# создаем хранилище для хранения томом сервисов
+volumes:
+  db:
+    name: db
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/${USER}/data/db
+      o: bind
+
+  wp:
+    name: wp
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/${USER}/data/wp
+      o: bind
+
+
+# создаем мостовую систему, которой оборачиваем все сервисы
+networks:
+  project:
+    driver: bridge
